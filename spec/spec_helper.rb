@@ -1,5 +1,5 @@
 require "bundler/setup"
-require "shape_of_requests"
+require "shape_of_a_request"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

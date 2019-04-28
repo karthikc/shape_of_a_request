@@ -1,6 +1,6 @@
-require "shape_of_requests/version"
+require "shape_of_a_request/version"
 
-module ShapeOfRequests
+module ShapeOfARequest
 
   class ApplicationController < ActionController::Base
 
@@ -20,13 +20,13 @@ module ShapeOfRequests
 
   IGNORED_CONTROLLERS = ['ReactController', 'Api::UsersController', 'Api::TranslationsController']
 
-  def instrument_instance_method(klass, method_name)
+  def self.instrument_instance_method(klass, method_name)
     klass.class_eval "alias uninstrumented_#{method_name} #{method_name}"
     klass.class_eval do
       define_method(method_name) do |*args|
         result = nil
         display_id = self.try(:source_id) ? source_id : id
-        details = {class: self.class.name, method: method_AWS_ACCESS_KEY_IDname, args: args, display_id: display_id}
+        details = {class: self.class.name, method: method_name, args: args, display_id: display_id}
         ActiveSupport::Notifications.instrument('start_important_method.active_model', details)
         ActiveSupport::Notifications.instrument('process_important_method.active_model', details) do
           result = send("uninstrumented_#{method_name}", *args)
@@ -36,7 +36,7 @@ module ShapeOfRequests
     end
   end
 
-  def instrument_all_methods_in(klass)
+  def self.instrument_all_methods_in(klass)
     puts "\n****************************** Instrumenting the following methods in #{klass.name}"
     klass.instance_methods(false).each do |method_name|
       method_name = method_name.to_s
@@ -48,24 +48,16 @@ module ShapeOfRequests
     end
   end
 
-  instrument_all_methods_in(Klass)
-  instrument_all_methods_in(School)
-  instrument_all_methods_in(SpringBoard::School)
-  instrument_all_methods_in(User)
-  instrument_all_methods_in(Reader::QuizAttempt)
-  instrument_all_methods_in(Reader::QuestionAttempt)
-  instrument_all_methods_in(Reader::SimpleQuiz)
-
-  def logger
-    @logger ||= Logger.new("#{Rails.root}/log/zoom.log")
+  def self.logger
+    @logger ||= Logger.new("#{Rails.root}/log/soar.log")
   end
 
-  def start_event(event_detail)
+  def self.start_event(event_detail)
     Thread.current[:instrumented_events] ||= []
     Thread.current[:instrumented_events] << event_detail
   end
 
-  def stop_event(event_detail)
+  def self.stop_event(event_detail)
     last_event = Thread.current[:instrumented_events].pop
     if event_detail != last_event
       logger.error "Event mismatch Last Event: #{last_event}. Currently completed event: #{event_detail}"
@@ -77,19 +69,19 @@ module ShapeOfRequests
 #   Thread.current[:instrumented_events].any? {|event| event.starts_with?('active_model:')}
 # end
 #
-  def log_event(message)
+  def self.log_event(message)
     depth = Thread.current[:instrumented_events] ? Thread.current[:instrumented_events].size : 0
     indentation = "    " * depth
-    logger.info "Zoom Track - #{indentation}#{message}"
+    logger.info "SOAR Track - #{indentation}#{message}"
   end
 
-  def log_controller_event(event, suffix)
+  def self.log_controller_event(event, suffix)
     unless IGNORED_CONTROLLERS.include?(event.payload[:controller])
       log_event("CONTROLLER #{event.payload[:method]} (#{event.payload[:format]}) #{event.payload[:controller]} #{event.payload[:action]}. #{suffix}")
     end
   end
 
-  def log_queue_event(event, suffix)
+  def self.log_queue_event(event, suffix)
     job = event.payload[:job]
     first_argument = job.arguments.first
     log_event("QUEUE #{job.queue_name}. With #{first_argument ? first_argument.to_s.truncate(50) : ''}. #{suffix}")
@@ -124,36 +116,36 @@ module ShapeOfRequests
   ActiveSupport::Notifications.subscribe "start_important_method.active_model" do |*args|
     event = ActiveSupport::Notifications::Event.new(*args)
     # log_event("MODEL: #{event.payload[:class]} #{event.payload[:method]}. Start")
-    log_event("MODEL: #{event.payload[:class]}(#{event.payload[:display_id]}) #{event.payload[:method]}")
-    start_event("active_model:#{event.payload[:class]}-#{event.payload[:method]}")
+    self.log_event("MODEL: #{event.payload[:class]}(#{event.payload[:display_id]}) #{event.payload[:method]}")
+    self.start_event("active_model:#{event.payload[:class]}-#{event.payload[:method]}")
   end
 
   ActiveSupport::Notifications.subscribe "process_important_method.active_model" do |*args|
     event = ActiveSupport::Notifications::Event.new(*args)
-    stop_event("active_model:#{event.payload[:class]}-#{event.payload[:method]}")
+    self.stop_event("active_model:#{event.payload[:class]}-#{event.payload[:method]}")
     # log_event("MODEL: #{event.payload[:class]} #{event.payload[:method]}. Done")
   end
 
   ActiveSupport::Notifications.subscribe "enqueue.active_job" do |*args|
     event = ActiveSupport::Notifications::Event.new(*args)
-    log_queue_event(event, "Added Job To Queue")
+    self.log_queue_event(event, "Added Job To Queue")
   end
 
   ActiveSupport::Notifications.subscribe "enqueue_at.active_job" do |*args|
     event = ActiveSupport::Notifications::Event.new(*args)
-    log_queue_event(event, "Added Job To Queue")
+    self.log_queue_event(event, "Added Job To Queue")
   end
 
   ActiveSupport::Notifications.subscribe "perform_start.active_job" do |*args|
     event = ActiveSupport::Notifications::Event.new(*args)
-    log_queue_event(event, "Started Job")
-    start_event("active_job:#{event.payload[:job].job_id}")
+    self.log_queue_event(event, "Started Job")
+    self.start_event("active_job:#{event.payload[:job].job_id}")
   end
 
   ActiveSupport::Notifications.subscribe "perform.active_job" do |*args|
     event = ActiveSupport::Notifications::Event.new(*args)
-    stop_event("active_job:#{event.payload[:job].job_id}")
-    log_queue_event(event, "Done\n")
+    self.stop_event("active_job:#{event.payload[:job].job_id}")
+    self.log_queue_event(event, "Done\n")
   end
 
 end

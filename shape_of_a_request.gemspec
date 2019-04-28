@@ -1,17 +1,17 @@
 
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "shape_of_requests/version"
+require "shape_of_a_request/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "shape_of_requests"
-  spec.version       = ShapeOfRequests::VERSION
+  spec.name          = "shape_of_a_request"
+  spec.version       = ShapeOfARequest::VERSION
   spec.authors       = ["Karthik Chandrasekariah"]
   spec.email         = ["karthik.cs@gmail.com"]
 
-  spec.summary       = %q{View and navigate Ruby on Rails requests effeciently}
+  spec.summary       = %q{View and navigate Ruby on Rails requests efficiently}
   spec.description   = %q{}
-  spec.homepage      = "https://github.com/karthikc/shape_of_requests"
+  spec.homepage      = "https://github.com/karthikc/shape_of_a_request"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'

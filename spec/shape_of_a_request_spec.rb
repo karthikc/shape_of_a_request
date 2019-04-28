@@ -1,6 +1,6 @@
-RSpec.describe ShapeOfRequests do
+RSpec.describe ShapeOfARequest do
   it "has a version number" do
-    expect(ShapeOfRequests::VERSION).not_to be nil
+    expect(ShapeOfARequest::VERSION).not_to be nil
   end
 
   it "does something useful" do
